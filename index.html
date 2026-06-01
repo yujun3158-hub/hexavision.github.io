@@ -8738,14 +8738,18 @@
         /* ══════════════════════════════════════════════════════════════ */
 
         /* ══ 입출차 로그 (백엔드 연동: GET /transactions) ══ */
+        /* ══ 입출차 로그 (백엔드 연동: GET /transactions) ══ */
         async function renderLogList() {
             const list = document.getElementById('ad-log-list');
-            list.innerHTML = '';
+            
+            // 💡 1. 목록이 텅 비어있는 '최초 접속 시'에만 로딩 화면을 보여줍니다.
+            if (list.innerHTML.trim() === '') {
+                list.innerHTML = `<div class="empty-state"><span class="hex-spinner">${HEX_SPINNER_SVG}</span> 불러오는 중...</div>`;
+            }
 
             /* 🔌 백엔드 연동: 등록된 차량들의 transactions 통합 조회 */
             let logs = mockLogs;
             if (!API_CONFIG.USE_MOCK) {
-                list.innerHTML = `<div class="empty-state"><span class="hex-spinner">${HEX_SPINNER_SVG}</span> 불러오는 중...</div>`;
                 const plates = ['12가3456'];
                 const aggregated = [];
                 for (const plate of plates) {
@@ -8762,34 +8766,39 @@
                 }
             }
 
+            // 기록이 없을 경우 처리
             if (logs.length === 0) {
                 list.innerHTML = `<div class="empty-state"><i class="fas fa-car"></i>오늘 입출차 기록이 없습니다.</div>`;
                 return;
             }
 
-            list.innerHTML = '';
+            // 💡 2. 데이터를 모두 가져온 뒤, 화면 뒤(메모리)에서 HTML을 완성하여 한 번에 싹 바꿔치기 합니다.
+            let newHTML = '';
             logs.forEach(log => {
                 const hh = String(log.time.getHours()).padStart(2, '0');
                 const mm = String(log.time.getMinutes()).padStart(2, '0');
                 const ss = String(log.time.getSeconds()).padStart(2, '0');
-                const item = document.createElement('div');
-                item.className = 'log-item';
-                item.innerHTML = `
-                <div class="log-icon ${log.type}">
-                    <i class="fas fa-${log.type === 'entry' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
-                </div>
-                <div class="log-info">
-                    <div class="log-carnum">${log.carNum}</div>
-                    <div class="log-detail">${log.type === 'entry' ? '입차' : '출차'} · 취창업관 주차장</div>
-                </div>
-                <div class="log-time">
-                    <div style="font-weight:800; color:${log.type === 'entry' ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                        ${log.type === 'entry' ? '입차' : '출차'}
+                
+                newHTML += `
+                <div class="log-item">
+                    <div class="log-icon ${log.type}">
+                        <i class="fas fa-${log.type === 'entry' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
                     </div>
-                    <div>${hh}:${mm}:${ss}</div>
+                    <div class="log-info">
+                        <div class="log-carnum">${log.carNum}</div>
+                        <div class="log-detail">${log.type === 'entry' ? '입차' : '출차'} · 취창업관 주차장</div>
+                    </div>
+                    <div class="log-time">
+                        <div style="font-weight:800; color:${log.type === 'entry' ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                            ${log.type === 'entry' ? '입차' : '출차'}
+                        </div>
+                        <div>${hh}:${mm}:${ss}</div>
+                    </div>
                 </div>`;
-                list.appendChild(item);
             });
+            
+            // 완성된 목록으로 교체 (깜빡임 없음!)
+            list.innerHTML = newHTML;
         }
 
         /* ══ 공지사항 ══ */
