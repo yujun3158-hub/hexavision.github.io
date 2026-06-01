@@ -6921,16 +6921,34 @@
             btn.innerText = '처리중...';
             btn.classList.add('done');
 
-            /* 🔌 백엔드 연동: POST /gate/exit */
             const vNum = (currentUser.vehicles && currentUser.vehicles.length > 0)
                 ? currentUser.vehicles[0].num : '12가 3456';
-            const exitResult = await apiGateExit(vNum);
+            
+            // ⭐ [핵심 수정 1] 화면의 글자가 아닌, 내부 타이머 함수에서 정확한 요금을 직접 가져옵니다!
+            const { fee } = calcElapsed(); 
+            const finalFee = fee;
+
+            /* 🔌 백엔드 연동: POST /gate/exit 호출 시 요금(finalFee) 함께 전송 */
+            // ⭐ [핵심 수정 2] apiGateExit에 요금을 넘겨줍니다.
+            const exitResult = await apiGateExit(vNum, finalFee);
 
             /* 실제 백엔드 요금을 받았으면 영수증 업데이트 */
-            if (exitResult && exitResult.fee !== undefined) {
-                const feeStr = (exitResult.fee || 0).toLocaleString() + '원';
+            // (백엔드 응답명에 맞춰 parking_fee 또는 fee 둘 다 호환되도록 처리)
+            if (exitResult && (exitResult.parking_fee !== undefined || exitResult.fee !== undefined)) {
+                const returnedFee = exitResult.parking_fee !== undefined ? exitResult.parking_fee : exitResult.fee;
+                const feeStr = (returnedFee || 0).toLocaleString() + '원';
                 const feeEl = document.getElementById('sheet-total-fee');
                 if (feeEl) feeEl.innerText = feeStr;
+            }
+
+            // ⭐ [핵심 수정 3] 결제 내역 화면에 0원이 뜨지 않도록 프론트엔드 기록(history)에 강제 주입
+            if (currentUser) {
+                if (!currentUser.history) currentUser.history = [];
+                currentUser.history.unshift({
+                    date: new Date(),
+                    place: currentUser.parking || '캡스톤 모형 주차장',
+                    amount: finalFee
+                });
             }
 
             // 모의 결제 출차 동기화 보강
