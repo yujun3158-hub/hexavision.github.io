@@ -8760,37 +8760,72 @@
         async function renderLogList() {
             const list = document.getElementById('ad-log-list');
             
-            // 💡 1. 목록이 텅 비어있는 '최초 접속 시'에만 로딩 화면을 보여줍니다.
+            // 최초 로딩 시에만 스피너 표시
             if (list.innerHTML.trim() === '') {
                 list.innerHTML = `<div class="empty-state"><span class="hex-spinner">${HEX_SPINNER_SVG}</span> 불러오는 중...</div>`;
             }
 
-            /* 🔌 백엔드 연동: 등록된 차량들의 transactions 통합 조회 */
             let logs = mockLogs;
+
             if (!API_CONFIG.USE_MOCK) {
-                const plates = ['12가3456'];
                 const aggregated = [];
-                for (const plate of plates) {
+                const platesSet = new Set();
+                
+                // 1️⃣ 현재 주차 중인 차량들의 '실시간 입차' 기록 수집 (GET /spots)
+                const spotsData = await apiSpots();
+                if (spotsData && Array.isArray(spotsData)) {
+                    spotsData.forEach(s => {
+                        // 자리가 점유되어 있고, 번호판과 입차시간이 있는 경우
+                        if (s.is_occupied && s.plate_number && s.entry_time) {
+                            platesSet.add(s.plate_number);
+                            aggregated.push({ 
+                                type: 'entry', 
+                                carNum: s.plate_number, 
+                                time: toKST(s.entry_time) 
+                            });
+                        }
+                    });
+                }
+
+                // 2️⃣ 과거 결제(출차) 내역 조회를 위해 알고 있는 모든 번호판 수집
+                Object.values(users).forEach(u => {
+                    if (u.vehicles) u.vehicles.forEach(v => platesSet.add(v.num));
+                });
+                if (currentUser && currentUser.vehicles) {
+                    currentUser.vehicles.forEach(v => platesSet.add(v.num));
+                }
+
+                // 3️⃣ 수집된 모든 번호판에 대해 기존 결제 내역 API 병렬 호출 (GET /transactions/{plate})
+                const promises = Array.from(platesSet).map(async (plate) => {
                     const data = await apiTransactions(plate);
                     if (data && Array.isArray(data)) {
                         data.forEach(t => {
-                            if (t.entry_time) aggregated.push({ type: 'entry', carNum: plate, time: toKST(t.entry_time) });
-                            if (t.exit_time) aggregated.push({ type: 'exit', carNum: plate, time: toKST(t.exit_time) });
+                            // 결제된 세션의 과거 입차 기록
+                            if (t.entry_time) {
+                                aggregated.push({ type: 'entry', carNum: plate, time: toKST(t.entry_time) });
+                            }
+                            // 결제된 세션의 과거 출차 기록
+                            if (t.exit_time) {
+                                aggregated.push({ type: 'exit', carNum: plate, time: toKST(t.exit_time) });
+                            }
                         });
                     }
-                }
+                });
+
+                // 모든 API 통신이 끝날 때까지 대기
+                await Promise.all(promises);
+
                 if (aggregated.length > 0) {
+                    // 시간 내림차순 정렬 후 최신 50개만 잘라서 표시 (중복된 입차 기록이 있을 수 있으므로 방어 로직 포함 가능하나, 현재는 시간순으로 덮어씀)
                     logs = aggregated.sort((a, b) => b.time - a.time).slice(0, 50);
                 }
             }
 
-            // 기록이 없을 경우 처리
             if (logs.length === 0) {
                 list.innerHTML = `<div class="empty-state"><i class="fas fa-car"></i>오늘 입출차 기록이 없습니다.</div>`;
                 return;
             }
 
-            // 💡 2. 데이터를 모두 가져온 뒤, 화면 뒤(메모리)에서 HTML을 완성하여 한 번에 싹 바꿔치기 합니다.
             let newHTML = '';
             logs.forEach(log => {
                 const hh = String(log.time.getHours()).padStart(2, '0');
@@ -8815,7 +8850,6 @@
                 </div>`;
             });
             
-            // 완성된 목록으로 교체 (깜빡임 없음!)
             list.innerHTML = newHTML;
         }
 
