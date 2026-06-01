@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="HexaVision owl mark">
+  <title>HexaVision</title>
+  
+  <path d="M19 36 L11 46 L14 54 L23 51 Z" fill="#3F51B5"></path>
+  <path d="M45 36 L53 46 L50 54 L41 51 Z" fill="#3F51B5"></path>
+
+  
+  <path d="M19 14 L23 5 L26 15 Z" fill="#1A237E"></path>
+  <path d="M38 15 L41 5 L45 14 Z" fill="#1A237E"></path>
+
+  
+  <path d="M32 30 L47 38 L47 50 Q47 53 44 54 L32 60 L20 54 Q17 53 17 50 L17 38 Z" fill="#1A237E"></path>
+
+  
+  <circle cx="32" cy="24" r="14" fill="#1A237E"></circle>
+
+  
+  <path d="M32 28 L34 31 L32 33.5 L30 31 Z" fill="#3F51B5"></path>
+
+  
+  <path d="M24.5 18.5 L28.4 20.75 L28.4 25.25 L24.5 27.5 L20.6 25.25 L20.6 20.75 Z" fill="#F59E0B"></path>
+  <path d="M39.5 18.5 L43.4 20.75 L43.4 25.25 L39.5 27.5 L35.6 25.25 L35.6 20.75 Z" fill="#F59E0B"></path>
+
+  
+  <circle cx="24.5" cy="23" r="1.8" fill="#00C8E0"></circle>
+  <circle cx="39.5" cy="23" r="1.8" fill="#00C8E0"></circle>
+</svg>

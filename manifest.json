@@ -1,0 +1,57 @@
+{
+  "name": "HexaVision Parking",
+  "short_name": "HexaVision",
+  "description": "AI-Powered Smart Parking System — 번호판 인식, 실시간 현황, 엣지 카메라 감지.",
+  "start_url": "/05312101/",
+  "scope": "/05312101/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1A237E",
+  "background_color": "#080D1A",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "navigation"],
+  "icons": [
+    {
+      "src": "logo-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/01-splash.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "스플래시 화면"
+    },
+    {
+      "src": "screenshots/login.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "로그인"
+    },
+    {
+      "src": "screenshots/01-sensors.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "센서 현황"
+    }
+  ]
+}
