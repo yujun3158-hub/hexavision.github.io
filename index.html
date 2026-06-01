@@ -8842,11 +8842,13 @@
             if (!API_CONFIG.USE_MOCK) {
                 // Collect all known plates dynamically (including the actual recognized test car '138버2127')
                 const plates = new Set(['12가3456', '34나5678', '56다7890', '78라9012', '90마1234', '11바2345', '22사3456', '24라6802', '138버2127', '138버 2127']);
+                let activeSpots = [];
                 
                 // Add any plates found in the active spots dynamically
                 try {
                     const spots = await apiSpots();
                     if (spots && Array.isArray(spots)) {
+                        activeSpots = spots;
                         spots.forEach(s => {
                             if (s.plate_number) {
                                 plates.add(s.plate_number);
@@ -8890,6 +8892,28 @@
                 });
 
                 await Promise.all(promises);
+
+                // Merge active entry records of currently parked vehicles from active spots
+                activeSpots.forEach(s => {
+                    if (s.plate_number && s.entry_time) {
+                        const plate = s.plate_number;
+                        const time = toKST(s.entry_time);
+                        // Check if this entry log already exists in the transactions database to avoid duplicate entry items
+                        const isDup = aggregated.some(a => 
+                            a.type === 'entry' && 
+                            (a.carNum === plate || a.carNum.replace(/\s+/g, '') === plate.replace(/\s+/g, '')) && 
+                            Math.abs(a.time.getTime() - time.getTime()) < 15000
+                        );
+                        if (!isDup) {
+                            aggregated.push({
+                                type: 'entry',
+                                carNum: plate,
+                                time: time,
+                                lotName: '캡스톤 모형 주차장'
+                            });
+                        }
+                    }
+                });
 
                 if (aggregated.length > 0) {
                     logs = aggregated.sort((a, b) => b.time - a.time).slice(0, 50);
