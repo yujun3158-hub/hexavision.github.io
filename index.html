@@ -1929,6 +1929,9 @@
             font-weight: 900;
             color: rgba(255, 255, 255, 0.15);
             font-family: var(--mono);
+            border-color: var(--accent-green);
+            border-top-color: var(--accent-green);
+            box-shadow: inset 0 -2px 0 rgba(34, 197, 94, 0.4);
         }
 
         /* Occupied stall */
@@ -2087,6 +2090,8 @@
    BOTTOM NAV / SIDE NAV
    ══════════════════════════════════════════════════════════════ */
         .app-nav {
+            position: relative;
+            z-index: 130;
             height: 60px;
             padding-bottom: env(safe-area-inset-bottom, 0px);
             box-sizing: content-box;
@@ -2146,7 +2151,7 @@
             position: absolute;
             inset: 0;
             background: rgba(6, 10, 18, 0.7);
-            z-index: 98;
+            z-index: 140;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -2218,6 +2223,10 @@
             color: var(--text-primary);
             font-family: var(--mono);
             font-weight: 700;
+        }
+
+        .pay-row .license-plate {
+            color: #111111 !important;
         }
 
         .pay-row.total {
@@ -2300,7 +2309,10 @@
    ══════════════════════════════════════════════════════════════ */
         .sub-page-overlay {
             position: absolute;
-            inset: 0;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: calc(60px + env(safe-area-inset-bottom, 0px));
             background: var(--app-bg);
             z-index: 120;
             display: flex;
@@ -4432,10 +4444,12 @@
                 transition: all 0.2s ease;
                 user-select: none;
             }
+
             .app-nav-brand:hover {
                 color: var(--brand-bright);
                 opacity: 0.85;
             }
+
             .app-nav-brand:active {
                 transform: scale(0.97);
             }
@@ -4587,6 +4601,7 @@
             /* Sub-page overlays sized to main area */
             .sub-page-overlay {
                 left: 200px;
+                bottom: 0;
             }
 
             /* Pay sheet positioned to right pane only */
@@ -4642,6 +4657,7 @@
             .confirm-modal-overlay,
             .logout-modal-overlay {
                 left: 220px;
+                bottom: 0;
             }
         }
 
@@ -4787,12 +4803,14 @@
             user-select: none;
         }
 
-        .hv-brand-cluster:hover, .admin-header-left:hover {
+        .hv-brand-cluster:hover,
+        .admin-header-left:hover {
             opacity: 0.85;
             filter: brightness(1.15);
         }
 
-        .hv-brand-cluster:active, .admin-header-left:active {
+        .hv-brand-cluster:active,
+        .admin-header-left:active {
             transform: scale(0.97);
             opacity: 0.7;
         }
@@ -5817,14 +5835,19 @@
                             <div class="map-parking-title" id="map-parking-title">
                                 <i class="fas fa-map-marker-alt" style="color:var(--accent-blue);"></i>
                                 <span id="map-parking-name-label">-</span>
-                                <span id="map-current-badge" class="map-current-badge" style="display:none;">현재 주차 중</span>
+                                <span id="map-current-badge" class="map-current-badge" style="display:none;">현재 주차
+                                    중</span>
                             </div>
                             <div class="parking-grid" id="app-map-grid"></div>
                         </div>
                         <div id="map-empty-state" style="display:none;">
-                            <div class="empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 16px; color:var(--text-secondary); text-align:center; gap:16px; width:100%;">
+                            <div class="empty-state"
+                                style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 16px; color:var(--text-secondary); text-align:center; gap:16px; width:100%;">
                                 <i class="fas fa-parking" style="font-size:48px; color:var(--text-tertiary);"></i>
-                                <div style="font-size:14px; font-weight:600; line-height:1.6;">이용 중인 주차장이 없습니다.<br/><span style="font-size:12px; font-weight:400; color:var(--text-tertiary);">플레이스 탭에서 주차장을 탐색하고 맵에서 보기를 눌러주세요.</span></div>
+                                <div style="font-size:14px; font-weight:600; line-height:1.6;">이용 중인 주차장이
+                                    없습니다.<br /><span
+                                        style="font-size:12px; font-weight:400; color:var(--text-tertiary);">플레이스 탭에서
+                                        주차장을 탐색하고 맵에서 보기를 눌러주세요.</span></div>
                             </div>
                         </div>
                     </div>
@@ -6794,7 +6817,9 @@
             if (!loginTimestamp) return { diffSec: 0, diffMin: 0, fee: 0 };
             const diffSec = Math.floor((Date.now() - loginTimestamp) / 1000);
             const diffMin = Math.floor(diffSec / 60);
-            return { diffSec, diffMin, fee: diffMin * 100 };
+            // Base fee 100 won + 100 won per minute
+            const fee = 100 + (diffMin * 100);
+            return { diffSec, diffMin, fee };
         }
 
         function fmtHMS(diffSec) {
@@ -6921,32 +6946,29 @@
             btn.innerText = '처리중...';
             btn.classList.add('done');
 
+            const { fee } = calcElapsed();
+
+            /* 🔌 백엔드 연동: POST /gate/exit */
             const vNum = (currentUser.vehicles && currentUser.vehicles.length > 0)
                 ? currentUser.vehicles[0].num : '12가 3456';
-            
-            // ⭐ [핵심 수정 1] 화면의 글자가 아닌, 내부 타이머 함수에서 정확한 요금을 직접 가져옵니다!
-            const { fee } = calcElapsed(); 
-            const finalFee = fee;
-
-            /* 🔌 백엔드 연동: POST /gate/exit 호출 시 요금(finalFee) 함께 전송 */
-            // ⭐ [핵심 수정 2] apiGateExit에 요금을 넘겨줍니다.
-            const exitResult = await apiGateExit(vNum, finalFee);
+            const exitResult = await apiGateExit(vNum);
 
             /* 실제 백엔드 요금을 받았으면 영수증 업데이트 */
-            // (백엔드 응답명에 맞춰 parking_fee 또는 fee 둘 다 호환되도록 처리)
-            if (exitResult && (exitResult.parking_fee !== undefined || exitResult.fee !== undefined)) {
-                const returnedFee = exitResult.parking_fee !== undefined ? exitResult.parking_fee : exitResult.fee;
-                const feeStr = (returnedFee || 0).toLocaleString() + '원';
+            let finalFee = fee;
+            if (exitResult && exitResult.fee !== undefined) {
+                finalFee = exitResult.fee;
+                const feeStr = finalFee.toLocaleString() + '원';
                 const feeEl = document.getElementById('sheet-total-fee');
                 if (feeEl) feeEl.innerText = feeStr;
             }
 
-            // ⭐ [핵심 수정 3] 결제 내역 화면에 0원이 뜨지 않도록 프론트엔드 기록(history)에 강제 주입
+            // 결제 내역 저장 (로컬 저장소 동기화)
             if (currentUser) {
                 if (!currentUser.history) currentUser.history = [];
+                const parkingName = currentUser.parking && currentUser.parking !== '이용 중인 주차장 없음' && currentUser.parking !== '이용중인 주차장이 없음' ? currentUser.parking : '캡스톤 모형 주차장';
                 currentUser.history.unshift({
                     date: new Date(),
-                    place: currentUser.parking || '캡스톤 모형 주차장',
+                    place: parkingName,
                     amount: finalFee
                 });
             }
@@ -7085,6 +7107,14 @@
             if (pid === 'place') { document.getElementById('place-search-input').value = ''; searchPlace(); }
             if (pid === 'home') renderHomeFavorites();
 
+            // ALWAYS close subpage overlays on navigation to any tab
+            closeManageVehicle();
+            closeManageCard();
+            closePaymentHistory();
+            closeVehicleDetail();
+            closeAddVehicle();
+            closeAddCard();
+
             updateThemeToggleUI();
             if (pid !== 'map') currentMapParking = null;
         }
@@ -7160,7 +7190,7 @@
 
         function swapUserAdminRole() {
             const isCurrentlyAdmin = document.getElementById('admin-app').style.display === 'flex';
-            
+
             // 세션 및 타이머 확실히 클리어
             stopTimer();
             if (typeof stopCountdown === 'function') stopCountdown();
@@ -7170,18 +7200,18 @@
             }
             currentUser = null;
             currentAdmin = null;
-            
+
             // 초기 즐겨찾기 상태(캡스톤 모형 주차장 기본 탑재)로 안전 복구
             favorites.clear();
             favorites.add('캡스톤 모형 주차장');
             favExpanded = false;
             currentMapParking = null;
             currentSelectedCardIndex = 0;
-            
+
             // 화면 감추기
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('admin-app').style.display = 'none';
-            
+
             isDemoMode = true;
             if (isCurrentlyAdmin) {
                 currentDemoRole = 'user';
@@ -7192,7 +7222,7 @@
                 document.getElementById('login-id').value = 'admin/777';
                 document.getElementById('login-pw').value = '1234';
             }
-            
+
             // 즉시 로그인 실행 (화면 깜빡임 없는 무점멸 자동 로그인)
             doLogin();
         }
@@ -7788,13 +7818,54 @@
                 const plate = currentUser.vehicles[0].num;
                 const data = await apiTransactions(plate);
                 if (data && Array.isArray(data)) {
-                    history = data.map(t => ({
+                    const backendHistory = data.map(t => ({
                         date: toKST(t.exit_time || t.entry_time),
-                        place: t.lot_name || currentUser.parking || '주차장',
-                        amount: t.fee || 0
+                        place: (function() {
+                            let lotName = t.lot_name || currentUser.parking || '캡스톤 모형 주차장';
+                            if (lotName.includes('취창업관') || lotName.includes('대구가톨릭대학교') || lotName === '주차장') {
+                                return '캡스톤 모형 주차장';
+                            }
+                            return lotName;
+                        })(),
+                        amount: t.amount !== undefined ? t.amount : (t.fee || 0)
                     }));
+
+                    // Merge local and backend history
+                    const merged = [...history, ...backendHistory];
+
+                    // Ensure all dates are Date objects for calculations
+                    merged.forEach(item => {
+                        if (!(item.date instanceof Date)) item.date = new Date(item.date);
+                    });
+
+                    // Sort descending first so we process newest first
+                    merged.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+                    // De-duplicate transactions by place and approximate time (within 15 seconds)
+                    const unique = [];
+                    merged.forEach(item => {
+                        const dupIdx = unique.findIndex(u =>
+                            u.place === item.place &&
+                            Math.abs(u.date.getTime() - item.date.getTime()) < 15000
+                        );
+                        if (dupIdx === -1) {
+                            unique.push(item);
+                        } else {
+                            // Keep the record with the larger amount to prevent displaying 0 won instead of paid amount
+                            if (item.amount > unique[dupIdx].amount) {
+                                unique[dupIdx] = item;
+                            }
+                        }
+                    });
+                    history = unique;
                 }
             }
+
+            // Sort by date descending
+            history.forEach(item => {
+                if (!(item.date instanceof Date)) item.date = new Date(item.date);
+            });
+            history.sort((a, b) => b.date.getTime() - a.date.getTime());
 
             if (!history || history.length === 0) {
                 list.innerHTML = `<div class="empty-state"><i class="fas fa-receipt"></i>결제 내역이 없습니다.</div>`;
@@ -7848,7 +7919,7 @@
             const grid = document.getElementById('app-map-grid');
             const nameLabel = document.getElementById('map-parking-name-label');
             const currentBadge = document.getElementById('map-current-badge');
-            
+
             const activeContent = document.getElementById('map-active-content');
             const emptyState = document.getElementById('map-empty-state');
 
@@ -8031,8 +8102,8 @@
                 total: 8,
                 occ: 0,
                 hours: '24시간',
-                fee: '무료',
-                seasons: ['학기 무료권 지원'],
+                fee: '100원/1분',
+                seasons: ['재학 중 학기 무료권 지원'],
                 mapPattern: [false, false, false, false, false, false, false, false]
             };
         }
@@ -8054,7 +8125,7 @@
 
         /* 공지사항 */
         let adminNotices = [
-            { text: '취창업관 주차장 이용 안내: 재학생 우선 배정 (평일 08:00~18:00)', date: new Date() }
+            { text: '캡스톤 모형 주차장 이용 안내: 재학생 우선 배정 (평일 08:00~18:00)', date: new Date() }
         ];
 
         /* ── 관리자 앱 진입 ── */
@@ -8390,24 +8461,24 @@
                             d.setAttribute('data-slot-num', String(s.id).padStart(2, '0'));
                             d.innerHTML = s.occ ? '<i class="fas fa-car-side"></i>' : s.id;
                             setTimeout(() => d.classList.remove('state-flash'), 560);
-                            
+
                             // 모의 데이터 동기화
                             p.mapPattern[s.id - 1] = s.occ;
                             p.occ = p.mapPattern.filter(Boolean).length;
-                            
+
                             const sensor = mockSensors.find(sen => sen.spot === s.id);
                             if (sensor) {
                                 sensor.state = s.occ ? 'occupied' : 'free';
                                 sensor.updated = new Date();
                             }
-                            
+
                             const fakePlate = (s.id === 1 && currentUser && currentUser.vehicles[0]) ? currentUser.vehicles[0].num : `34나 ${5000 + s.id}`;
                             mockLogs.unshift({
                                 type: s.occ ? 'entry' : 'exit',
                                 carNum: fakePlate,
                                 time: new Date()
                             });
-                            
+
                             showAdminToast(s.occ ? `🚗 ${s.id}번 슬롯 — 주차 처리됨` : `✅ ${s.id}번 슬롯 — 빈자리 처리됨`);
                         };
                         d.setAttribute('data-slot-num', String(s.id).padStart(2, '0'));
@@ -8594,7 +8665,7 @@
                     const plate = plates[Math.floor(Math.random() * plates.length)];
                     addLprLog(`✓ 번호판 인식 완료 → ${plate}`, 'ok');
                     addLprLog(`✓ DB 등록 완료 (자동 입차)`, 'ok');
-                    
+
                     // 모의 입출차 로그 및 센서 연동 동기화
                     mockLogs.unshift({
                         type: 'entry',
@@ -8611,7 +8682,7 @@
                         }
                     }
                     p.occ = p.mapPattern.filter(Boolean).length;
-                    
+
                     lprScanning = false;
                     btn.classList.remove('scanning');
                     btn.classList.remove('scan-active');
@@ -8756,68 +8827,74 @@
         /* ══════════════════════════════════════════════════════════════ */
 
         /* ══ 입출차 로그 (백엔드 연동: GET /transactions) ══ */
-        /* ══ 입출차 로그 (백엔드 연동: GET /transactions) ══ */
         async function renderLogList() {
             const list = document.getElementById('ad-log-list');
-            
-            // 최초 로딩 시에만 스피너 표시
-            if (list.innerHTML.trim() === '') {
-                list.innerHTML = `<div class="empty-state"><span class="hex-spinner">${HEX_SPINNER_SVG}</span> 불러오는 중...</div>`;
+
+            // Only show loading spinner on initial load to prevent 3s flickering
+            if (list.innerHTML === '' || list.querySelector('.empty-state') === null || list.querySelector('.hex-spinner')) {
+                if (list.innerHTML === '') {
+                    list.innerHTML = `<div class="empty-state"><span class="hex-spinner">${HEX_SPINNER_SVG}</span> 불러오는 중...</div>`;
+                }
             }
 
+            /* 🔌 백엔드 연동: 등록된 차량들의 transactions 통합 조회 */
             let logs = mockLogs;
-
             if (!API_CONFIG.USE_MOCK) {
-                const aggregated = [];
-                const platesSet = new Set();
+                // Collect all known plates dynamically (including the actual recognized test car '138버2127')
+                const plates = new Set(['12가3456', '34나5678', '56다7890', '78라9012', '90마1234', '11바2345', '22사3456', '24라6802', '138버2127', '138버 2127']);
                 
-                // 1️⃣ 현재 주차 중인 차량들의 '실시간 입차' 기록 수집 (GET /spots)
-                const spotsData = await apiSpots();
-                if (spotsData && Array.isArray(spotsData)) {
-                    spotsData.forEach(s => {
-                        // 자리가 점유되어 있고, 번호판과 입차시간이 있는 경우
-                        if (s.is_occupied && s.plate_number && s.entry_time) {
-                            platesSet.add(s.plate_number);
-                            aggregated.push({ 
-                                type: 'entry', 
-                                carNum: s.plate_number, 
-                                time: toKST(s.entry_time) 
+                // Add any plates found in the active spots dynamically
+                try {
+                    const spots = await apiSpots();
+                    if (spots && Array.isArray(spots)) {
+                        spots.forEach(s => {
+                            if (s.plate_number) {
+                                plates.add(s.plate_number);
+                                plates.add(s.plate_number.replace(/\s+/g, ''));
+                            }
+                        });
+                    }
+                } catch (err) {}
+
+                if (currentUser && currentUser.vehicles) {
+                    currentUser.vehicles.forEach(v => {
+                        plates.add(v.num.replace(/\s+/g, ''));
+                    });
+                }
+                if (typeof users !== 'undefined') {
+                    Object.values(users).forEach(u => {
+                        if (u.vehicles) {
+                            u.vehicles.forEach(v => {
+                                plates.add(v.num.replace(/\s+/g, ''));
                             });
                         }
                     });
                 }
 
-                // 2️⃣ 과거 결제(출차) 내역 조회를 위해 알고 있는 모든 번호판 수집
-                Object.values(users).forEach(u => {
-                    if (u.vehicles) u.vehicles.forEach(v => platesSet.add(v.num));
-                });
-                if (currentUser && currentUser.vehicles) {
-                    currentUser.vehicles.forEach(v => platesSet.add(v.num));
-                }
-
-                // 3️⃣ 수집된 모든 번호판에 대해 기존 결제 내역 API 병렬 호출 (GET /transactions/{plate})
-                const promises = Array.from(platesSet).map(async (plate) => {
-                    const data = await apiTransactions(plate);
-                    if (data && Array.isArray(data)) {
-                        data.forEach(t => {
-                            // 결제된 세션의 과거 입차 기록
-                            if (t.entry_time) {
-                                aggregated.push({ type: 'entry', carNum: plate, time: toKST(t.entry_time) });
-                            }
-                            // 결제된 세션의 과거 출차 기록
-                            if (t.exit_time) {
-                                aggregated.push({ type: 'exit', carNum: plate, time: toKST(t.exit_time) });
-                            }
-                        });
-                    }
+                const aggregated = [];
+                // Query all plates in parallel for optimal speed
+                const promises = Array.from(plates).map(async (plate) => {
+                    try {
+                        const data = await apiTransactions(plate);
+                        if (data && Array.isArray(data)) {
+                            data.forEach(t => {
+                                let lotName = t.lot_name || '캡스톤 모형 주차장';
+                                if (lotName.includes('취창업관') || lotName.includes('대구가톨릭대학교') || lotName === '주차장') {
+                                    lotName = '캡스톤 모형 주차장';
+                                }
+                                if (t.entry_time) aggregated.push({ type: 'entry', carNum: plate, time: toKST(t.entry_time), lotName });
+                                if (t.exit_time) aggregated.push({ type: 'exit', carNum: plate, time: toKST(t.exit_time), lotName });
+                            });
+                        }
+                    } catch (e) {}
                 });
 
-                // 모든 API 통신이 끝날 때까지 대기
                 await Promise.all(promises);
 
                 if (aggregated.length > 0) {
-                    // 시간 내림차순 정렬 후 최신 50개만 잘라서 표시 (중복된 입차 기록이 있을 수 있으므로 방어 로직 포함 가능하나, 현재는 시간순으로 덮어씀)
                     logs = aggregated.sort((a, b) => b.time - a.time).slice(0, 50);
+                } else {
+                    logs = [];
                 }
             }
 
@@ -8826,20 +8903,20 @@
                 return;
             }
 
-            let newHTML = '';
+            // Build new HTML string in-memory and write in one shot to eliminate flickering completely
+            let newHtml = '';
             logs.forEach(log => {
                 const hh = String(log.time.getHours()).padStart(2, '0');
                 const mm = String(log.time.getMinutes()).padStart(2, '0');
                 const ss = String(log.time.getSeconds()).padStart(2, '0');
-                
-                newHTML += `
+                newHtml += `
                 <div class="log-item">
                     <div class="log-icon ${log.type}">
                         <i class="fas fa-${log.type === 'entry' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
                     </div>
                     <div class="log-info">
                         <div class="log-carnum">${log.carNum}</div>
-                        <div class="log-detail">${log.type === 'entry' ? '입차' : '출차'} · 취창업관 주차장</div>
+                        <div class="log-detail">${log.type === 'entry' ? '입차' : '출차'} · 캡스톤 모형 주차장</div>
                     </div>
                     <div class="log-time">
                         <div style="font-weight:800; color:${log.type === 'entry' ? 'var(--accent-green)' : 'var(--accent-red)'}">
@@ -8849,8 +8926,7 @@
                     </div>
                 </div>`;
             });
-            
-            list.innerHTML = newHTML;
+            list.innerHTML = newHtml;
         }
 
         /* ══ 공지사항 ══ */
@@ -8905,11 +8981,11 @@
         }
 
         applyTheme(currentTheme);
-       
+
         /* ── 자동 로그인 체크 ── */
         (async function checkAutoLogin() {
             return; // 자동 로그인 기능 잠시 비활성화 (개발 편의상)
-            
+
             const savedId = localStorage.getItem('sp_saved_id');
             const savedPw = localStorage.getItem('sp_saved_pw');
             if (!savedId || !savedPw) return;
@@ -9096,14 +9172,14 @@
     </script>
 
     <script>
-            /* ── PWA 서비스워커 등록 ── */
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./service-worker.js')
-                        .then(reg => console.log('SW 등록 성공:', reg.scope))
-                        .catch(err => console.log('SW 등록 실패:', err));
-                });
-            }
+        /* ── PWA 서비스워커 등록 ── */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('SW 등록 성공:', reg.scope))
+                    .catch(err => console.log('SW 등록 실패:', err));
+            });
+        }
     </script>
 
 </body>
