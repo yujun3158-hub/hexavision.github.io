@@ -8844,9 +8844,11 @@
         }
 
         applyTheme(currentTheme);
-
+       
         /* ── 자동 로그인 체크 ── */
         (async function checkAutoLogin() {
+            return; // 자동 로그인 기능 잠시 비활성화 (개발 편의상)
+            
             const savedId = localStorage.getItem('sp_saved_id');
             const savedPw = localStorage.getItem('sp_saved_pw');
             if (!savedId || !savedPw) return;
