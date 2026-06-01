@@ -5,13 +5,13 @@
 
 const CACHE_NAME = 'hexavision-v1';
 const STATIC_ASSETS = [
-  '/05312101/',
-  '/05312101/index.html',
-  '/05312101/manifest.json',
-  '/05312101/icon-192.png',
-  '/05312101/icon-512.png',
-  '/05312101/logo-mark.svg',
-  '/05312101/logo-mark.png',
+  '/hexavision.github.io/',
+  '/hexavision.github.io/index.html',
+  '/hexavision.github.io/manifest.json',
+  '/hexavision.github.io/icon-192.png',
+  '/hexavision.github.io/icon-512.png',
+  '/hexavision.github.io/logo-mark.svg',
+  '/hexavision.github.io/logo-mark.png',
 ];
 
 /* ── Install: 정적 파일 캐시 ── */
@@ -53,6 +53,6 @@ self.addEventListener('fetch', event => {
         }
         return response;
       });
-    }).catch(() => caches.match('/05312101/index.html'))
+    }).catch(() => caches.match('/hexavision.github.io/index.html'))
   );
 });
